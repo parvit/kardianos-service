@@ -240,19 +240,19 @@ func (s *darwinLaunchdService) Status() (Status, error) {
 }
 
 func (s *darwinLaunchdService) Start() error {
-	confPath, err := s.getServiceFilePath()
+	_, err := s.getServiceFilePath()
 	if err != nil {
 		return err
 	}
-	return run("launchctl", "load", confPath)
+	return run("launchctl", "kickstart", "system/"+s.Name)
 }
 
 func (s *darwinLaunchdService) Stop() error {
-	confPath, err := s.getServiceFilePath()
+	_, err := s.getServiceFilePath()
 	if err != nil {
 		return err
 	}
-	return run("launchctl", "unload", confPath)
+	return run("launchctl", "kill", "TERM", "system/"+s.Name)
 }
 
 func (s *darwinLaunchdService) Restart() error {
