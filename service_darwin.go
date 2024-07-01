@@ -213,6 +213,8 @@ func (s *darwinLaunchdService) Uninstall() error {
 	return os.Remove(confPath)
 }
 
+var regexPid = regexp.MustCompile(`"PID" = ([0-9]+);`)
+
 func (s *darwinLaunchdService) Status() (Status, error) {
 	exitCode, out, err := runWithOutput("launchctl", "list", s.Name)
 	if exitCode == 0 && err != nil {
@@ -221,8 +223,7 @@ func (s *darwinLaunchdService) Status() (Status, error) {
 		}
 	}
 
-	re := regexp.MustCompile(`"PID" = ([0-9]+);`)
-	matches := re.FindStringSubmatch(out)
+	matches := regexPid.FindStringSubmatch(out)
 	if len(matches) == 2 {
 		return StatusRunning, nil
 	}
@@ -244,6 +245,10 @@ func (s *darwinLaunchdService) Start() error {
 	if err != nil {
 		return err
 	}
+	if s.userService {
+		_, out, _ := runWithOutput("id", "-u", s.UserName)
+		return run("launchctl", "kickstart", "gui/"+out+"/"+s.Name)
+	}
 	return run("launchctl", "kickstart", "system/"+s.Name)
 }
 
@@ -251,6 +256,10 @@ func (s *darwinLaunchdService) Stop() error {
 	_, err := s.getServiceFilePath()
 	if err != nil {
 		return err
+	}
+	if s.userService {
+		_, out, _ := runWithOutput("id", "-u", s.UserName)
+		return run("launchctl", "kill", "TERM", "gui/"+out+"/"+s.Name)
 	}
 	return run("launchctl", "kill", "TERM", "system/"+s.Name)
 }
