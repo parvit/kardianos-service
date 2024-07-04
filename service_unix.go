@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"log/syslog"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -69,6 +70,9 @@ func runWithOutput(command string, arguments ...string) (int, string, error) {
 
 func runCommand(command string, readStdout bool, arguments ...string) (int, string, error) {
 	cmd := exec.Command(command, arguments...)
+	if TRACECOMMANDS {
+		fmt.Printf("TRACE: %v\n", cmd.String())
+	}
 
 	var output string
 	var stdout io.ReadCloser
@@ -128,7 +132,7 @@ func runCommand(command string, readStdout bool, arguments ...string) (int, stri
 		return 0, output, fmt.Errorf("%q failed: %v", command, err)
 	}
 
-	return 0, output, nil
+	return 0, strings.TrimSpace(output), nil
 }
 
 func isExitError(err error) (int, bool) {

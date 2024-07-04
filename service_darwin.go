@@ -246,8 +246,13 @@ func (s *darwinLaunchdService) Start() error {
 		return err
 	}
 	if s.userService {
-		_, out, _ := runWithOutput("id", "-u", s.UserName)
-		return run("launchctl", "kickstart", "gui/"+out+"/"+s.Name)
+		if s.Option.bool(optionRunAtLoad, optionRunAtLoadDefault) {
+			confPath, _ := s.getServiceFilePath()
+			return run("launchctl", "load", "-w", confPath)
+		}
+		_, userid, _ := runWithOutput("id", "-u", s.UserName)
+		target := fmt.Sprintf("gui/%s/%s", userid, s.Name)
+		return run("launchctl", "kickstart", target)
 	}
 	return run("launchctl", "kickstart", "system/"+s.Name)
 }
@@ -258,8 +263,13 @@ func (s *darwinLaunchdService) Stop() error {
 		return err
 	}
 	if s.userService {
-		_, out, _ := runWithOutput("id", "-u", s.UserName)
-		return run("launchctl", "kill", "TERM", "gui/"+out+"/"+s.Name)
+		if s.Option.bool(optionRunAtLoad, optionRunAtLoadDefault) {
+			confPath, _ := s.getServiceFilePath()
+			return run("launchctl", "unload", confPath)
+		}
+		_, userid, _ := runWithOutput("id", "-u", s.UserName)
+		target := fmt.Sprintf("gui/%s/%s", userid, s.Name)
+		return run("launchctl", "kill", "TERM", target)
 	}
 	return run("launchctl", "kill", "TERM", "system/"+s.Name)
 }
@@ -307,8 +317,8 @@ var launchdConfig = `<?xml version='1.0' encoding='UTF-8'?>
 	<key>EnvironmentVariables</key>
 	<dict>
 	{{range $k, $v := .EnvVars -}}
-	<key>{{html $k}}</key>
-	<string>{{html $v}}</string>
+	  <key>{{html $k}}</key>
+	  <string>{{html $v}}</string>
 	{{end -}}
 	</dict>
     <key>Label</key>
